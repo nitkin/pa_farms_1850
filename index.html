@@ -54,7 +54,10 @@
 
     //Defines the map area and calls tiles from openstreetmap.
     
-	var map = L.map('map').setView([37.8, -96], 4);
+	var map = L.map('map').fitBounds([
+        [40, -80.6],
+        [40, -74.8]
+        ]);
 
 	L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
 		maxZoom: 18,
