@@ -104,13 +104,11 @@
     //Listens for a change in either menu selector and updates geojson layer using geoColor to style.
     
     $("#select_a, #select_b").on("change", function ratioFinder(e){
-      //  console.log("selection made"); 
         
         geojson.eachLayer(function(layer){
             
         if (e==""); 
             var abc = (eval("layer.feature.properties." + document.getElementById("select_a").value))/(eval("layer.feature.properties." + document.getElementById("select_b").value)); 
-        //console.log(abc);
 
         layer.setStyle({
             fillColor: getColor(abc),
@@ -155,8 +153,6 @@
             var a = eval("feature.properties." + document.getElementById("select_a").value);
             var b = eval("feature.properties." + document.getElementById("select_b").value);
         
-        console.log(a/b);
-
         return {
             fillColor: getColor(a/b),
             weight: 2,
@@ -218,7 +214,7 @@
             (eval("props." + document.getElementById("select_a").value))
             :'No Selection Made') + "<br><b> Option B </b><br>" + (props ? 
             (eval("props." + document.getElementById("select_b").value))
-            :'No Selection Made');
+            :'No Selection Made') + "<br><b>Ratio</b><br>" + (props ? Math.round((eval("props." + document.getElementById("select_a").value)/(eval("props." + document.getElementById("select_b").value)))*100)/100 + ":1" :'Not Enough Information');
     };
 
     info.addTo(map);
