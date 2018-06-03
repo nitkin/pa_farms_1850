@@ -113,7 +113,8 @@
     //Function is an if-else color-picker. Values are sent down to the 'style' function - this determines what color to display chloropleth shapes on the map.
     
     function getColor(c) {
-    return  c >= 128 ? '#4BACC6' :
+    return  c === Number.POSITIVE_INFINITY ? '#FF0000':
+            c >= 128 ? '#4BACC6' :
             c >= 64 ? '#61B6CD' :
             c >= 32 ? '#78C0D4' :
             c >= 16 ? '#8ECBDB' :
