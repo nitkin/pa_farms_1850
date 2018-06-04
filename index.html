@@ -1,30 +1,44 @@
+
 <html>
 <head>
 	
-	<title>PA Farm Map</title>
+	<title>1850 PA Farm Map</title>
 
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	
-	<link rel="shortcut icon" type="image/x-icon" href="docs/images/favicon.ico" />
-
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.1/dist/leaflet.css" integrity="sha512-Rksm5RenBEKSKFjgI3a41vrjkw4EVPlJ3+OiI65vTjIdo9brlAacEuKOiQ5OFh7cOI1bkDwLqdLw3Zg0cRJAAQ==" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.3.1/dist/leaflet.js" integrity="sha512-/Nsx9X4HebavoBvEBuyp3I7od5tA0UzAxs+j83KgC8PU0kgB4XiK4Lfe4y4cgBtaRJQEIFCW+oC506aPT2L1zw==" crossorigin=""></script>
-    
     <script src="https://code.jquery.com/jquery-3.1.0.js"></script>
-
 
 	<style>
 		html, body {
 			height: 100%;
 			margin: 0;
             font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif
-
 		}
         #map { 
             height: calc(100%); 
             width: 100%; 
             position: absolute !important; 
+        }
+		#title {
+		    padding: 6px 8px;
+            position: absolute;
+            top: 15px;
+			margin-left: 15px;
+            font-size: 24pt;
+            z-index: 9999;
+			pointer-events: none;
+            background: rgba(255,255,255,0.8);
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            border-radius: 5px;
+        }
+		#gradientscale{
+            width:calc(100%);
+            height:30px;
+            border-radius: 5px;
+            float: left;
+            background:linear-gradient(90deg, #4BACC6 0%, #FFFFFF 50%, #9BBB59 100%);
         }
         .info {
             padding: 6px 8px;
@@ -33,99 +47,126 @@
             background: rgba(255,255,255,0.8);
             box-shadow: 0 0 15px rgba(0,0,0,0.2);
             border-radius: 5px;
+			width: 150px;
         }
         .legend {
             line-height: 18px;
             color: #555;
             width: 100%;
         }
-
         .alignleft {
             float: left;
-            margin-bottom: 5px;
+			margin-bottom: 5px;
         }
         .alignright {
             float: right;
-            margin-bottom: 5px;
+			margin-bottom: 5px;
         }
-        #gradientscale{
-            width:calc(100%);
-            height:30px;
-            border-radius: 5px;
-            float: left;
-            background:linear-gradient(90deg, #4BACC6 0%, #FFFFFF 50%, #9BBB59 100%);
+		.nodata {
+			color:gray; 
+			display:inline;
         }
-
 
     </style>
+	
 </head>
 <body>
 
 <div id='map'></div>
 
+<div id='title'>
+	<div>1850 Pennsylvania Agricultural Census</div>
+	<div style="font-size:18px">Explore and compare agricultural production values by county.</div>
+</div>
+
 <!--Script calls in the geoJSON file.-->
     
 <script type="text/javascript" src="1850Data.geojson"></script>
 
-<!--Big script block does the heavy lifting.-->    
+<!--Script block does the heavy lifting.-->    
     
 <script type="text/javascript">
 
-    //Defines the map area and calls tiles from openstreetmap.
+    //Creates the map object and calls map tiles from Esri.
     
-	var map = L.map('map');
+	var map = L.map('map', { zoomControl:false });
 
 	L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/    MapServer/tile/{z}/{y}/{x}', {
 	   attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ | <a href="https://nitkin.github.io/">Evan Nitkin</a>' ,
 	   maxZoom: 16
     }).addTo(map)
     
+	//Creates the selector/legend control.
+	
     var legend = L.control({position: 'bottomleft'});
 
     legend.onAdd = function (map) {
         var div = L.DomUtil.create('div', 'info legend');
-        div.innerHTML = '<p class="alignleft"><b>More:</b><br><select id=select_a onchange="ratioFinder(this.value)" onchange="resetStyle"><option selected="selected" value=null>Make a selection</option><optgroup label="Geography & Demographics"><option value="peopleCount">People</option><option value="farmCount">Farm Count</option><option value="improvedLandAcres">Improved Land Acres</option><option value="unimprovedLandAcres">Unimproved Land Acres</option></optgroup><optgroup label="Produce"><option value="barleyBushels">Barley Bushels</option><option value="beeswaxHoneyPounds">Beeswax Honey Pounds</option><option value="buckwheatBushels">Buckwheat Bushels</option><option value="cloverSeedBushels">Clover Seed Bushels</option><option value="flaxPound">Flax Pounds</option><option value="flaxseedPounds">Flaxseed Pounds</option><option value="hempTons">Hemp Tons</option><option value="hopsPounds">Hops Pounds</option><option value="indianCornBushels">Indian Corn Bushels</option><option value="irishPotatoBushels">Irish Potatoes Bushels</option><option value="mapleSugarPounds">Maple Sugar Pounds</option><option value="oatsBushels">Oats Bushels</option><option value="otherSeedsBushels">Other Seeds Bushels</option><option value="peaBeanBushels">Peas Beans Bushels</option><option value="ryeBushels">Rye Bushels</option><option value="sweetPotatoBushels">Sweet Potatoes Bushels</option><option value="tobaccoPounds">Tobacco Pounds</option><option value="wheatBushels">Wheat Bushels</option></optgroup><optgroup label="Dairy"><option value="butterPounds">Butter Pounds</option><option value="cheesePounds">Cheese Pounds</option></optgroup><optgroup label="Livestock"><option value="assesAndMulesCount">Asses and Mules Count</option><option value="horsesCount">Horses Count</option><option value="milchCowsCount">Milch Cows Count</option><option value="otherCattleCount">Other Cattle Count</option><option value="sheepCount">Sheep Count</option><option value="swineCount">Swine Count</option><option value="workingOxCount">Working Oxen Count</option></optgroup><optgroup label="Other"><option value="hayTons">Hay Tons</option><option value="molassesGallons">Molasses Gallons</option><option value="silkCocoonPounds">Silk Cocoons Pounds</option><option value="wineGallons">Wine Gallons</option><option value="woolPounds">Wool Pounds</option></optgroup></select></p><p class="alignright"><b>More:</b><br><select id=select_b onchange="ratioFinder(this.value)"><option selected="selected" value=null>Make a selection</option><optgroup label="Geography & Demographics"><option value="peopleCount">People</option><option value="farmCount">Farm Count</option><option value="improvedLandAcres">Improved Land Acres</option><option value="unimprovedLandAcres">Unimproved Land Acres</option></optgroup><optgroup label="Produce"><option value="barleyBushels">Barley Bushels</option><option value="beeswaxHoneyPounds">Beeswax Honey Pounds</option><option value="buckwheatBushels">Buckwheat Bushels</option><option value="cloverSeedBushels">Clover Seed Bushels</option><option value="flaxPound">Flax Pounds</option><option value="flaxseedPounds">Flaxseed Pounds</option><option value="hempTons">Hemp Tons</option><option value="hopsPounds">Hops Pounds</option><option value="indianCornBushels">Indian Corn Bushels</option><option value="irishPotatoBushels">Irish Potatoes Bushels</option><option value="mapleSugarPounds">Maple Sugar Pounds</option><option value="oatsBushels">Oats Bushels</option><option value="otherSeedsBushels">Other Seeds Bushels</option><option value="peaBeanBushels">Peas Beans Bushels</option><option value="ryeBushels">Rye Bushels</option><option value="sweetPotatoBushels">Sweet Potatoes Bushels</option><option value="tobaccoPounds">Tobacco Pounds</option><option value="wheatBushels">Wheat Bushels</option></optgroup><optgroup label="Dairy"><option value="butterPounds">Butter Pounds</option><option value="cheesePounds">Cheese Pounds</option></optgroup><optgroup label="Livestock"><option value="assesAndMulesCount">Asses and Mules Count</option><option value="horsesCount">Horses Count</option><option value="milchCowsCount">Milch Cows Count</option><option value="otherCattleCount">Other Cattle Count</option><option value="sheepCount">Sheep Count</option><option value="swineCount">Swine Count</option><option value="workingOxCount">Working Oxen Count</option></optgroup><optgroup label="Other"><option value="hayTons">Hay Tons</option><option value="molassesGallons">Molasses Gallons</option><option value="silkCocoonPounds">Silk Cocoons Pounds</option><option value="wineGallons">Wine Gallons</option><option value="woolPounds">Wool Pounds</option></optgroup></select></p><div id="gradientscale"></div>';div.innerHTML = '<p class="alignleft"><b>More:</b><br><select id=select_a onchange="ratioFinder(this.value)" onchange="resetStyle"><option selected="selected" value=null>Make a selection</option><optgroup label="Geography & Demographics"><option value="peopleCount">People</option><option value="farmCount">Farm Count</option><option value="improvedLandAcres">Improved Land Acres</option><option value="unimprovedLandAcres">Unimproved Land Acres</option></optgroup><optgroup label="Produce"><option value="barleyBushels">Barley Bushels</option><option value="beeswaxHoneyPounds">Beeswax Honey Pounds</option><option value="buckwheatBushels">Buckwheat Bushels</option><option value="cloverSeedBushels">Clover Seed Bushels</option><option value="flaxPound">Flax Pounds</option><option value="flaxseedPounds">Flaxseed Pounds</option><option value="hempTons">Hemp Tons</option><option value="hopsPounds">Hops Pounds</option><option value="indianCornBushels">Indian Corn Bushels</option><option value="irishPotatoBushels">Irish Potatoes Bushels</option><option value="mapleSugarPounds">Maple Sugar Pounds</option><option value="oatsBushels">Oats Bushels</option><option value="otherSeedsBushels">Other Seeds Bushels</option><option value="peaBeanBushels">Peas Beans Bushels</option><option value="ryeBushels">Rye Bushels</option><option value="sweetPotatoBushels">Sweet Potatoes Bushels</option><option value="tobaccoPounds">Tobacco Pounds</option><option value="wheatBushels">Wheat Bushels</option></optgroup><optgroup label="Dairy"><option value="butterPounds">Butter Pounds</option><option value="cheesePounds">Cheese Pounds</option></optgroup><optgroup label="Livestock"><option value="assesAndMulesCount">Asses and Mules Count</option><option value="horsesCount">Horses Count</option><option value="milchCowsCount">Milch Cows Count</option><option value="otherCattleCount">Other Cattle Count</option><option value="sheepCount">Sheep Count</option><option value="swineCount">Swine Count</option><option value="workingOxCount">Working Oxen Count</option></optgroup><optgroup label="Other"><option value="hayTons">Hay Tons</option><option value="molassesGallons">Molasses Gallons</option><option value="silkCocoonPounds">Silk Cocoons Pounds</option><option value="wineGallons">Wine Gallons</option><option value="woolPounds">Wool Pounds</option></optgroup></select></p><p class="alignright"><b>More:</b><br><select id=select_b onchange="ratioFinder(this.value)"><option selected="selected" value=null>Make a selection</option><optgroup label="Geography & Demographics"><option value="peopleCount">People</option><option value="farmCount">Farm Count</option><option value="improvedLandAcres">Improved Land Acres</option><option value="unimprovedLandAcres">Unimproved Land Acres</option></optgroup><optgroup label="Produce"><option value="barleyBushels">Barley Bushels</option><option value="beeswaxHoneyPounds">Beeswax Honey Pounds</option><option value="buckwheatBushels">Buckwheat Bushels</option><option value="cloverSeedBushels">Clover Seed Bushels</option><option value="flaxPound">Flax Pounds</option><option value="flaxseedPounds">Flaxseed Pounds</option><option value="hempTons">Hemp Tons</option><option value="hopsPounds">Hops Pounds</option><option value="indianCornBushels">Indian Corn Bushels</option><option value="irishPotatoBushels">Irish Potatoes Bushels</option><option value="mapleSugarPounds">Maple Sugar Pounds</option><option value="oatsBushels">Oats Bushels</option><option value="otherSeedsBushels">Other Seeds Bushels</option><option value="peaBeanBushels">Peas Beans Bushels</option><option value="ryeBushels">Rye Bushels</option><option value="sweetPotatoBushels">Sweet Potatoes Bushels</option><option value="tobaccoPounds">Tobacco Pounds</option><option value="wheatBushels">Wheat Bushels</option></optgroup><optgroup label="Dairy"><option value="butterPounds">Butter Pounds</option><option value="cheesePounds">Cheese Pounds</option></optgroup><optgroup label="Livestock"><option value="assesAndMulesCount">Asses and Mules Count</option><option value="horsesCount">Horses Count</option><option value="milchCowsCount">Milch Cows Count</option><option value="otherCattleCount">Other Cattle Count</option><option value="sheepCount">Sheep Count</option><option value="swineCount">Swine Count</option><option value="workingOxCount">Working Oxen Count</option></optgroup><optgroup label="Other"><option value="hayTons">Hay Tons</option><option value="molassesGallons">Molasses Gallons</option><option value="silkCocoonPounds">Silk Cocoons Pounds</option><option value="wineGallons">Wine Gallons</option><option value="woolPounds">Wool Pounds</option></optgroup></select></p><div id="gradientscale"></div>';
+        div.innerHTML = '<div class="alignleft"><b>Option A:</b><br><select id=select_a onchange="ratioFinder(this.value)" onchange="resetStyle"><option selected="selected" value=null>Make a selection</option><optgroup label="Geography & Demographics"><option value="peopleCount">People</option><option value="farmCount">Farm Count</option><option value="improvedLandAcres">Improved Land Acres</option><option value="unimprovedLandAcres">Unimproved Land Acres</option></optgroup><optgroup label="Produce"><option value="barleyBushels">Barley Bushels</option><option value="beeswaxHoneyPounds">Beeswax Honey Pounds</option><option value="buckwheatBushels">Buckwheat Bushels</option><option value="cloverSeedBushels">Clover Seed Bushels</option><option value="flaxPound">Flax Pounds</option><option value="flaxseedPounds">Flaxseed Pounds</option><option value="hempTons">Hemp Tons</option><option value="hopsPounds">Hops Pounds</option><option value="indianCornBushels">Indian Corn Bushels</option><option value="irishPotatoBushels">Irish Potatoes Bushels</option><option value="mapleSugarPounds">Maple Sugar Pounds</option><option value="oatsBushels">Oats Bushels</option><option value="otherSeedsBushels">Other Seeds Bushels</option><option value="peaBeanBushels">Peas Beans Bushels</option><option value="ryeBushels">Rye Bushels</option><option value="sweetPotatoBushels">Sweet Potatoes Bushels</option><option value="tobaccoPounds">Tobacco Pounds</option><option value="wheatBushels">Wheat Bushels</option></optgroup><optgroup label="Dairy"><option value="butterPounds">Butter Pounds</option><option value="cheesePounds">Cheese Pounds</option></optgroup><optgroup label="Livestock"><option value="assesAndMulesCount">Asses and Mules Count</option><option value="horsesCount">Horses Count</option><option value="milchCowsCount">Milch Cows Count</option><option value="otherCattleCount">Other Cattle Count</option><option value="sheepCount">Sheep Count</option><option value="swineCount">Swine Count</option><option value="workingOxCount">Working Oxen Count</option></optgroup><optgroup label="Other"><option value="hayTons">Hay Tons</option><option value="molassesGallons">Molasses Gallons</option><option value="silkCocoonPounds">Silk Cocoons Pounds</option><option value="wineGallons">Wine Gallons</option><option value="woolPounds">Wool Pounds</option></optgroup></select></div><div class="alignright"><b>Option B:</b><br><select id=select_b onchange="ratioFinder(this.value)"><option selected="selected" value=null>Make a selection</option><optgroup label="Geography & Demographics"><option value="peopleCount">People</option><option value="farmCount">Farm Count</option><option value="improvedLandAcres">Improved Land Acres</option><option value="unimprovedLandAcres">Unimproved Land Acres</option></optgroup><optgroup label="Produce"><option value="barleyBushels">Barley Bushels</option><option value="beeswaxHoneyPounds">Beeswax Honey Pounds</option><option value="buckwheatBushels">Buckwheat Bushels</option><option value="cloverSeedBushels">Clover Seed Bushels</option><option value="flaxPound">Flax Pounds</option><option value="flaxseedPounds">Flaxseed Pounds</option><option value="hempTons">Hemp Tons</option><option value="hopsPounds">Hops Pounds</option><option value="indianCornBushels">Indian Corn Bushels</option><option value="irishPotatoBushels">Irish Potatoes Bushels</option><option value="mapleSugarPounds">Maple Sugar Pounds</option><option value="oatsBushels">Oats Bushels</option><option value="otherSeedsBushels">Other Seeds Bushels</option><option value="peaBeanBushels">Peas Beans Bushels</option><option value="ryeBushels">Rye Bushels</option><option value="sweetPotatoBushels">Sweet Potatoes Bushels</option><option value="tobaccoPounds">Tobacco Pounds</option><option value="wheatBushels">Wheat Bushels</option></optgroup><optgroup label="Dairy"><option value="butterPounds">Butter Pounds</option><option value="cheesePounds">Cheese Pounds</option></optgroup><optgroup label="Livestock"><option value="assesAndMulesCount">Asses and Mules Count</option><option value="horsesCount">Horses Count</option><option value="milchCowsCount">Milch Cows Count</option><option value="otherCattleCount">Other Cattle Count</option><option value="sheepCount">Sheep Count</option><option value="swineCount">Swine Count</option><option value="workingOxCount">Working Oxen Count</option></optgroup><optgroup label="Other"><option value="hayTons">Hay Tons</option><option value="molassesGallons">Molasses Gallons</option><option value="silkCocoonPounds">Silk Cocoons Pounds</option><option value="wineGallons">Wine Gallons</option><option value="woolPounds">Wool Pounds</option></optgroup></select></div><div id="gradientscale"></div>';
         div.firstChild.onmousedown = div.firstChild.ondblclick = L.DomEvent.stopPropagation;
         return div;
-        
     };
     
+	//Adds selector/legend control to map.
+	
     legend.addTo(map);
+	
+	//Creates the information reporter control.
+	
+	var info = L.control({position:"bottomright"});
+
+    info.onAdd = function (e) {
+        this._div = L.DomUtil.create('div', 'info');
+        this.update();
+        return this._div;
+    };
+
+	//Updates contents of information reporter control based on input from selector/legend control and geoJSON data.
+	
+    info.update = function (e) {
+		if ((document.getElementById("select_a").value)=="null" && (document.getElementById("select_b").value)=="null"){
+			this._div.innerHTML = '<b>County Name</b><br>' + (e ? 
+			e.COUNTY_NAM: "<div class=nodata>Hover over a county</div>") + "<br><b> Option A </b><br>" + "<div class=nodata>----</div>" + "<br><b> Option B </b><br>" + "<div class=nodata>----</div>" + "<br><b>Ratio</b><br>" + "<div class=nodata>Select Two Options<div>";	
+		} else if ((document.getElementById("select_b").value)=="null"){
+			this._div.innerHTML = '<b>County Name</b><br>' + (e ? 
+			e.COUNTY_NAM: "<div class=nodata'>Hover over a county</div>") + "<br><b> Option A </b><br>" + (e ? 
+			(eval("e." + document.getElementById("select_a").value))
+			:'----') + "<br><b> Option B </b><br>" + "<div class=nodata>----</div>" + "<br><b>Ratio</b><br>" + "<div class=nodata>Select Two Options</div>";	
+		} else if ((document.getElementById("select_a").value)=="null"){
+			this._div.innerHTML = '<b>County Name</b><br>' + (e ? 
+			e.COUNTY_NAM: "<div class=nodata>Hover over a county</div>") + "<br><b> Option A </b><br>" + "<div class=nodata>----</div>" + "<br><b> Option B </b><br>" + (e ? 
+			(eval("e." + document.getElementById("select_b").value))
+			:'<div class=nodata>----</div>') + "<br><b>Ratio</b><br>" + "Select Two Options";	
+		} else {
+			this._div.innerHTML = '<b>County Name</b><br>' + (e ? 
+			e.COUNTY_NAM: "<div class=nodata>Hover over a county</div>") + "<br><b> Option A </b><br>" + (e ? 
+			(eval("e." + document.getElementById("select_a").value))
+			:'<div class=nodata>----</div>') + "<br><b> Option B </b><br>" + (e ? 
+			(eval("e." + document.getElementById("select_b").value))
+			:'<div class=nodata>----</div>') + "<br><b>Ratio</b><br>" + (e ? Math.round((eval("e." + document.getElementById("select_a").value)/(eval("e." + document.getElementById("select_b").value)))*100)/100 + "<b>:</b>1" :'<div class=nodata>Not Enough Information<div>');
+		}
+	};
+
+	//Adds information reporter control to map.
     
-    //Adds styled geojson data to the map.
+	info.addTo(map);
+    
+    //Defines geoJSON data as var geojson and adds styled geoJSON data to the map.
     
     var geojson = L.geoJson(PAcounties, {
         style: ratioFinder,
         onEachFeature: onEachFeature
     }).addTo(map); 
     
+	//Fits the map bounds to contain all geoJSON data on map.
+	
     map.fitBounds(geojson.getBounds());
     
-    //Listens for a change in either menu selector and updates geojson layer using geoColor to style.
-    
-    $("#select_a, #select_b").on("change", function ratioFinder(e){
-        
-        geojson.eachLayer(function(layer){
-            
-        if (e==""); 
-            var abc = (eval("layer.feature.properties." + document.getElementById("select_a").value))/(eval("layer.feature.properties." + document.getElementById("select_b").value)); 
-
-        layer.setStyle({
-            fillColor: getColor(abc),
-            weight: 2,
-            opacity: 1,
-            color: 'white',
-            dashArray: '3',
-            fillOpacity: 0.7
-        });
-        
-    })});
-    
-    //Function is an if-else color-picker. Values are sent down to the 'style' function - this determines what color to display chloropleth shapes on the map.
+	//An if-else color-picker. Values are sent down to the 'style' function - this determines what color to display chloropleth shapes on the map.
     
     function getColor(c) {
-    return  c === Number.POSITIVE_INFINITY ? '#4BACC6':
-            c >= 128 ? '#4BACC6' :
+		return  c === Number.POSITIVE_INFINITY ? '#4BACC6':
+			c >= 128 ? '#4BACC6' :
             c >= 64 ? '#61B6CD' :
             c >= 32 ? '#78C0D4' :
             c >= 16 ? '#8ECBDB' :
@@ -143,16 +184,32 @@
             c >= 0.0075 ? '#A7C36D' :
             c >= 0.0 ? '#9BBB59' :     
                 '#aaaaaa';
-    }   
+    }
+	
+    //Listens for a change in either menu selector and updates var geojson as layer using function geoColor to help style.
+    
+    $("#select_a, #select_b").on("change", function ratioFinder(e) {
+		geojson.eachLayer(function(layer){
+			if (e==""); 
+				var value = (eval("layer.feature.properties." + document.getElementById("select_a").value))/(eval("layer.feature.properties." + document.getElementById("select_b").value)); 
+			
+			layer.setStyle({
+				fillColor: getColor(value),
+				weight: 2,
+				opacity: 1,
+				color: 'white',
+				dashArray: '3',
+				fillOpacity: 0.7
+			});
+		})
+	});
     
     //Function calls attribute data from the select pull-down menus and finds the ratio between values for each county.
     
-    function ratioFinder(feature) {
-        
-        if (feature==""); 
-            var a = eval("feature.properties." + document.getElementById("select_a").value);
-            var b = eval("feature.properties." + document.getElementById("select_b").value);
-        
+    function ratioFinder(e) {
+        if (e==""); 
+            var a = eval("e.properties." + document.getElementById("select_a").value);
+            var b = eval("e.properties." + document.getElementById("select_b").value);
         return {
             fillColor: getColor(a/b),
             weight: 2,
@@ -163,62 +220,39 @@
         };  
     }
     
-    //Function defines the hover-over styling of each county shape. Triggered by function 'onEachFeature'.
+    //Function defines the hover-over styling of each county shape. Initiated by function 'onEachFeature'.
     
     function highlightFeature(e) {
         var layer = e.target;
-    
         info.update(layer.feature.properties);
-        
         layer.setStyle({
             weight: 5,
             color: '#666',
             dashArray: '',
             fillOpacity: 0.7
         });
-
         if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
-        layer.bringToFront();
+			layer.bringToFront();
         }
     }
     
-    //Function defines the reset styling of county shape after hover-over event. Triggered by function 'onEachFeature'.
+    //Function defines the reset styling of county shape after hover-over event. Initiated by function 'onEachFeature'.
     
     function resetHighlight(e) {
-        
-        info.update();
-        
+		info.update();
         geojson.resetStyle(e.target);
     }
     
-    //Function is an event listener that triggers when a county shape is moused over or moused out of. 
+    //Event listener that triggers when a county shape is moused over or moused out of. Initiates either function 'highlightFeature' and 'resetHighlight'. 
     
     function onEachFeature(feature, layer) {
-        layer.on({
+        
+		layer.on({
             mouseover: highlightFeature,
             mouseout: resetHighlight,
         });
     }
-     
-    var info = L.control({position:"bottomright"});
-
-    info.onAdd = function (map) {
-        this._div = L.DomUtil.create('div', 'info');
-        this.update();
-        return this._div;
-    };
-
-    info.update = function (props) {
-        this._div.innerHTML = '<b>County Name</b><br>' + (props ? 
-            props.COUNTY_NAM: 'Hover over a county') + "<br><b> Option A </b><br>" + (props ? 
-            (eval("props." + document.getElementById("select_a").value))
-            :'No Selection Made') + "<br><b> Option B </b><br>" + (props ? 
-            (eval("props." + document.getElementById("select_b").value))
-            :'No Selection Made') + "<br><b>Ratio</b><br>" + (props ? Math.round((eval("props." + document.getElementById("select_a").value)/(eval("props." + document.getElementById("select_b").value)))*100)/100 + ":1" :'Not Enough Information');
-    };
-
-    info.addTo(map);
-    
+	
 </script>
 </body>
 </html>
